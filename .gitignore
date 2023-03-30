@@ -1,0 +1,6 @@
+/data/glove.840B.300d/
+/data/train.csv
+*/*.pkl
+.idea
+
+
