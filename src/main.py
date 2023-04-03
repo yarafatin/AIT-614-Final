@@ -12,45 +12,61 @@ Two models are created and compared for performance
 
 """
 
-import pandas as pd
+
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from sklearn.model_selection import train_test_split
 
-from sentence_embedding_models import sentence_embedding_model_logistic
-from word_embedding_models import word_embedding_model_logistic
-
-input_data_path = '../data/train.csv'
+from pyspark.sql import SparkSession
 
 
-def process():
-    """
-    The process function load data from file system, creates and compares models to detected insincere questions
-    Glove and Universal sentence embeddings have been used to compare performance
-    Logistic regression has been used as a supervised learning model
-    """
+from src import team3ProjectConstants
+from src.word_embedding_models import word_embedding_model_logistic
 
-    print('starting word embedding based modeling')
-    data_df = load_data()
-    print('\ndata loaded')
-    # class is highly imbalanced - only 6% insincere question, so split train/test data with similar proportion
-    # "stratify" is used to maintain class ratio on both data sets
-    train, test = train_test_split(data_df, test_size=0.2, stratify=data_df['target'])
-    train_insincere_q = train[train['target'] == 1]
-    test_insincere_q = test[test['target'] == 1]
-    # verify percentage of insincere qs after split is 6% on both data sets
-    print('training dataset insincere questions - {}%'.format(len(train_insincere_q) * 100 / len(train)))
-    print('test dataset insincere questions - {}%'.format(len(test_insincere_q) * 100 / len(test)))
 
-    train_x, train_y, test_x, test_y = train['question_text'].values, train['target'].values, \
-                                       test['question_text'].values, test['target'].values
+def stratified_split(data_df):
+    zeros = data_df.filter(data_df["target"] == 0)
+    ones = data_df.filter(data_df["target"] == 1)
 
-    # model 1 - Logistic Regression with glove embedding
-    predicted = word_embedding_model_logistic(train_x, train_y, test_x)
-    print_performance_report(test_y, predicted, 'Logistic regression model With Glove embeddings')
+    print("original : zeroes count & one count : ", zeros.count(), ones.count(), ones.count() / zeros.count())
+    # split datasets into training and testing
+    train0, test0 = zeros.randomSplit([0.8, 0.2], seed=1234)
+    train1, test1 = ones.randomSplit([0.8, 0.2], seed=1234)
 
-    # model 2 - Logistic Regression with sentence embedding
-    predicted = sentence_embedding_model_logistic(train_x, train_y, test_x)
-    print_performance_report(test_y, predicted, 'Logistic regression model with sentence embeddings')
+    # stack datasets back together
+    train = train0.union(train1)
+    test = test0.union(test1)
+
+    print("train : zeroes count & one count : ", train0.count(), train1.count(), train1.count() / train0.count(),
+          len(train.collect()))
+    print("test : zeroes count & one count : ", test0.count(), test1.count(), test1.count() / test0.count(),
+          len(test.collect()))
+
+    stratifiedTrainData = train.sample(False, 10000 / len(train.collect()))
+
+    x_zeros = stratifiedTrainData.filter(stratifiedTrainData["target"] == 0)
+    x_ones = stratifiedTrainData.filter(stratifiedTrainData["target"] == 1)
+
+    print("train_10000 : zeroes count & one count : ", x_zeros.count(), x_ones.count(),
+          x_ones.count() / x_zeros.count())
+    return stratifiedTrainData, train, test
+
+def load_data():
+
+    spark = SparkSession.builder.master("local[1]").appName("AIT-614-Project-Team3").getOrCreate()
+    data_df = spark.read.format("csv").option("header", "true").load(team3ProjectConstants.trainDataFile, inferSchema="true")
+
+    train10000, train, test =stratified_split(data_df)
+
+    #Just display for time being , delete in final version
+    train10000.select("question_text", "target") \
+        .where("target == '0'") \
+        .show(5)
+
+    train10000.select("question_text", "target") \
+        .where("target == '1'") \
+        .show(5)
+    return train10000, train, test
+
 
 
 def print_performance_report(test_y, predicted, model_desc):
@@ -68,26 +84,21 @@ def print_performance_report(test_y, predicted, model_desc):
     print("Confusion Matrix : ")
     print(confusion_matrix(test_y, predicted))
 
+    #TODO - explore
+    #MulticlassClassificationEvaluator
 
-def load_data():
-    """
-    load data from file system and print samples
-    :return:
-    """
-    all_data_df = pd.read_csv(input_data_path)
-    print('#################print sample insincere values ####################')
-    print(all_data_df[all_data_df['target'] == 1]['question_text'].sample(5))
-    print('#################print sample sincere values ####################')
-    print(all_data_df[all_data_df['target'] == 0]['question_text'].sample(5))
-    return all_data_df
+def process():
+    train10000, train, test = load_data()
+    train_x = train10000.select("question_text")
+    train_y = train10000.select("target")
+    test_x = test.select("question_text")
+    test_y = test.select("target")
 
-    # For local development, limit data to 10K for easier development and testing
-    # make sure in that 10k, there are some insincere questions.
-    # uncomment below that does it
-    # a = all_data_df[all_data_df['target'] == 1].sample(600)
-    # b = all_data_df.sample(10000)
-    # return pd.concat([a, b])
-
+    predicted = word_embedding_model_logistic(train_x, train_y, test_x)
+    print ('prediction done')
+    print_performance_report(test_y, predicted, 'Logistic regression model With Glove embeddings')
 
 if __name__ == '__main__':
+    print('111')
     process()
+
