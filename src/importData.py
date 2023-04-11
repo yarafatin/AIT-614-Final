@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from pyspark.sql import SparkSession
 import csv
 import team3ProjectConstants
 
@@ -20,7 +21,7 @@ def process():
     global team3ProjectDb
     print('Start Import')
 
-    csvfile = open(team3ProjectConstants.importFile, "r", encoding='utf-8')
+    csvfile = open(team3ProjectConstants.trainDataFile, "r", encoding='utf-8')
     reader = csv.DictReader(csvfile)
 
     header = ["qid", "question_text", "target"]
@@ -40,6 +41,7 @@ def process():
     print("total records in MongoDB:", team3ProjectDb.quoraQuestions.estimated_document_count())
 
 
-# if __name__ == '__main__':
-#     setup()
-#     process()
+if __name__ == '__main__':
+    setup()
+    process()
+

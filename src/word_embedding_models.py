@@ -33,12 +33,15 @@ def word_embedding_model_logistic(train_x, train_y, test_x):
     # step 1: get embedding dictionary from glove
     embedding_dict = word_embedding_dict()
     # step 2: convert to numpy after some cleanup like stop word removal
-    train_embed = np.array([sentence_to_word_embedding(x, embedding_dict) for x in tqdm(train_x)])
-    test_embed = np.array([sentence_to_word_embedding(x, embedding_dict) for x in tqdm(test_x)])
+    train_embed = np.array([sentence_to_word_embedding(x, embedding_dict) for x in tqdm(train_x.toPandas())])
+    test_embed = np.array([sentence_to_word_embedding(x, embedding_dict) for x in tqdm(test_x.toPandas())])
     # step 3: train model
     model = LogisticRegression(solver='sag')
     print('start training logistics regression model')
-    model.fit(train_embed, train_y)
+
+    print ("train_x train_y train_embed test_x :", type(train_x.toPandas()), type(train_y.toPandas()), type(train_embed), type(test_x.toPandas()) )
+
+    model.fit(train_embed, train_y.toPandas())
 
     # save the model to disk
     pickle.dump(model, open('word_embedding_model_logistic.pkl', 'wb'))
@@ -53,7 +56,7 @@ def word_embedding_dict():
     """
     print('read glove word embedding into dict')
     embedding_vector = {}
-    with open(embedding_file) as f:
+    with open(embedding_file, encoding='utf-8') as f:
         for line in f:
             line = line.split(' ')
             embedding_vector[line[0]] = np.array(line[1:], dtype=np.float32)
