@@ -1,47 +1,50 @@
-from pymongo import MongoClient
-from pyspark.sql import SparkSession
 import csv
-import team3ProjectConstants
 
-global quoraQuestions
-global team3ProjectDb
-
-
-def setup():
-    mongoClient = MongoClient(team3ProjectConstants.mongo_db_url)
-    global team3ProjectDb
-    team3ProjectDb = mongoClient[team3ProjectConstants.project_db_name]
-    global quoraQuestions
-    quoraQuestions = team3ProjectDb[team3ProjectConstants.question_collection_name]
-    print("total records :", team3ProjectDb.quoraQuestions.estimated_document_count())
+from project_properties import mongo_db_host, mongo_db_user, mongo_db_password, mongo_db_name, \
+    mongo_db_collection, trainDataFile
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 
 
-def process():
-    global quoraQuestions
-    global team3ProjectDb
-    print('Start Import')
+def import_data():
+    uri = f"mongodb+srv://{mongo_db_user}:{mongo_db_password}@{mongo_db_host}/?retryWrites=true&w=majority"
+    # Create a new client and connect to the server
+    client = MongoClient(uri, server_api=ServerApi('1'))
+    client.admin.command('ping')
+    print("Connection successfully connected to MongoDB!")
+    db = client[mongo_db_name]
+    collection = db[mongo_db_collection]
+    # create an index on the qid field
+    collection.create_index('qid')
 
-    csvfile = open(team3ProjectConstants.trainDataFile, "r", encoding='utf-8')
-    reader = csv.DictReader(csvfile)
+    buffer = []
+    buffer_size = 5000
 
-    header = ["qid", "question_text", "target"]
-    i = 0
-    for each in reader:
-        row = {}
+    # open the CSV file and read its contents
+    with open(trainDataFile, "r") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            # add the row to the insert buffer
+            buffer.append({
+                "qid": row["qid"],
+                "question_text": row["question_text"],
+                "target": row["target"]
+            })
 
-        for field in header:
-            row[field] = each[field]
+            # if the buffer is full, insert the documents into the collection
+            if len(buffer) == buffer_size:
+                collection.insert_many(buffer, ordered=False)
+                print('inserted 5000 records')
+                buffer = []
 
-        i = i + 1
-        print(" Inserting record :", i)
-        quoraQuestions.insert_one(row)
+        # insert any remaining documents in the buffer
+        if len(buffer) > 0:
+            collection.insert_many(buffer, ordered=False)
 
-    print(" Done... :")
-
-    print("total records in MongoDB:", team3ProjectDb.quoraQuestions.estimated_document_count())
+    print('all loaded')
+    # close the MongoDB connection
+    client.close()
 
 
 if __name__ == '__main__':
-    setup()
-    process()
-
+    import_data()

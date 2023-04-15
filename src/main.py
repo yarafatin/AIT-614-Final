@@ -19,7 +19,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from pyspark.sql import SparkSession
 
 
-from src import team3ProjectConstants
+from src import project_properties
 from src.word_embedding_models import word_embedding_model_logistic
 
 
@@ -53,7 +53,7 @@ def stratified_split(data_df):
 def load_data():
 
     spark = SparkSession.builder.master("local[1]").appName("AIT-614-Project-Team3").getOrCreate()
-    data_df = spark.read.format("csv").option("header", "true").load(team3ProjectConstants.trainDataFile, inferSchema="true")
+    data_df = spark.read.format("csv").option("header", "true").load(project_properties.trainDataFile, inferSchema="true")
 
     train10000, train, test =stratified_split(data_df)
 

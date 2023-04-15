@@ -1,0 +1,6 @@
+mongo_db_host = "ait614.adkj20o.mongodb.net"
+mongo_db_user = "yparamba"
+mongo_db_name = "ait614"
+mongo_db_collection = "quoraQuestions"
+mongo_db_password = "OUGAsNCiJKp0oDUU"
+trainDataFile = "../data/train.csv"
