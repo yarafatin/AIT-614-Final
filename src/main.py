@@ -12,15 +12,11 @@ Two models are created and compared for performance
 
 """
 
-
-from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.sql import SparkSession
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-from pyspark.sql import SparkSession
-
-
-from src import project_properties
-from src.word_embedding_models import word_embedding_model_logistic
+from project_properties import TRAIN_FILE_PATH
+from word_embedding_models import word_embedding_model_logistic
 
 
 def stratified_split(data_df):
@@ -50,14 +46,14 @@ def stratified_split(data_df):
           x_ones.count() / x_zeros.count())
     return stratifiedTrainData, train, test
 
+
 def load_data():
-
     spark = SparkSession.builder.master("local[1]").appName("AIT-614-Project-Team3").getOrCreate()
-    data_df = spark.read.format("csv").option("header", "true").load(project_properties.trainDataFile, inferSchema="true")
+    data_df = spark.read.format("csv").option("header", "true").load(TRAIN_FILE_PATH, inferSchema="true")
 
-    train10000, train, test =stratified_split(data_df)
+    train10000, train, test = stratified_split(data_df)
 
-    #Just display for time being , delete in final version
+    # Just display for time being , delete in final version
     train10000.select("question_text", "target") \
         .where("target == '0'") \
         .show(5)
@@ -66,7 +62,6 @@ def load_data():
         .where("target == '1'") \
         .show(5)
     return train10000, train, test
-
 
 
 def print_performance_report(test_y, predicted, model_desc):
@@ -84,8 +79,9 @@ def print_performance_report(test_y, predicted, model_desc):
     print("Confusion Matrix : ")
     print(confusion_matrix(test_y, predicted))
 
-    #TODO - explore
-    #MulticlassClassificationEvaluator
+    # TODO - explore
+    # MulticlassClassificationEvaluator
+
 
 def process():
     train10000, train, test = load_data()
@@ -95,10 +91,10 @@ def process():
     test_y = test.select("target")
 
     predicted = word_embedding_model_logistic(train_x, train_y, test_x)
-    print ('prediction done')
+    print('prediction done')
     print_performance_report(test_y, predicted, 'Logistic regression model With Glove embeddings')
+
 
 if __name__ == '__main__':
     print('111')
     process()
-

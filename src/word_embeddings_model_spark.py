@@ -7,6 +7,8 @@ from pyspark.sql.types import ArrayType, DoubleType, IntegerType
 from sparknlp.annotator import *
 from sparknlp.base import *
 
+from project_properties import WORD_EMBEDDING_MODEL_SAVE_PATH
+
 spark = sparknlp.start()
 data = spark.read.format('csv').option('header', True).load('../data/train.csv').limit(100)
 data = data.withColumn("target", data["target"].cast(IntegerType()))
@@ -53,3 +55,4 @@ training = df_doc_vec.withColumn("features", dense_vector_udf(col("doc_vector"))
 
 lr = LogisticRegression(labelCol="target", featuresCol="features", maxIter=10, regParam=0.3, elasticNetParam=0.8)
 lrParisModel = lr.fit(training)
+lrParisModel.save(WORD_EMBEDDING_MODEL_SAVE_PATH)

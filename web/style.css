@@ -1,0 +1,10 @@
+.result {
+    color: #009688;
+    font-weight: bold;
+}
+
+.flush {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
