@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from text_utils import load_word_tokenizer, stop_words
 
-embedding_file = '../data/glove.840B.300d/glove.840B.300d.txt'
+embedding_file = '../../data/glove.840B.300d/glove.840B.300d.txt'
 max_length = 300  # max length of words in each question, used for padding to get uniform array length
 embed_size = 300  # size of the glove embedding dimension 300, used as input to RNN
 

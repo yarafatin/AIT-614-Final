@@ -16,7 +16,7 @@ from pyspark.sql import SparkSession
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 from project_properties import TRAIN_FILE_PATH
-from word_embedding_models import word_embedding_model_logistic
+from src.archive.word_embedding_models import word_embedding_model_logistic
 
 
 def stratified_split(data_df):
