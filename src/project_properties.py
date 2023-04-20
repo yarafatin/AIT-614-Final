@@ -29,7 +29,7 @@ if os.environ.get("FLASK_ENV") == 'cloud':
     MONGO_DB_PASSWORD = "OUGAsNCiJKp0oDUU"
     MONGO_URI = f"mongodb+srv://{MONGO_DB_USER}:{MONGO_DB_PASSWORD}@{MONGO_DB_HOST}/?retryWrites=true&w=majority"
     TRAIN_FILE_PATH = "../data/train.csv"
-    MODEL_PATH = "sincerity.model"
+    MODEL_PATH = "20230419230905-sentence-model"
     IS_CLOUD_ENV = True
 # properties to use in local. update as required
 else:
