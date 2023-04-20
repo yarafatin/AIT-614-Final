@@ -1,17 +1,37 @@
+"""
+AIT 614 - Big Data Essentials
+DL2 Team 3 Final Project
+Detecting Abrasive online user content
+
+Team 3
+Yasser Parambathkandy
+Indranil Pal
+Deepak Rajan
+
+University
+George Mason University
+"""
+
+"""
+This file contains the code for connecting to the MongoDB database and saving and retrieving data.
+It performs a one-time import of the data from the CSV file to the database.
+"""
+
 import csv
-import json
 import uuid
 
 from pymongo import DESCENDING
-
-from project_properties import MONGO_DB_HOST, MONGO_DB_USER, MONGO_DB_PASSWORD, MONGO_DB_NAME, \
-    MONGO_DB_COLLECTION, TRAIN_FILE_PATH
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
-uri = f"mongodb+srv://{MONGO_DB_USER}:{MONGO_DB_PASSWORD}@{MONGO_DB_HOST}/?retryWrites=true&w=majority"
-# Create a new client and connect to the server
-client = MongoClient(uri, server_api=ServerApi('1'))
+from project_properties import MONGO_DB_NAME, MONGO_DB_COLLECTION, TRAIN_FILE_PATH, IS_CLOUD_ENV, MONGO_URI
+
+if IS_CLOUD_ENV:
+    # Create a new client and connect to the server
+    client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
+else:
+    client = MongoClient(MONGO_URI)
+
 client.admin.command('ping')
 print("Connection successfully connected to MongoDB!")
 db = client[MONGO_DB_NAME]
@@ -19,6 +39,9 @@ collection = db[MONGO_DB_COLLECTION]
 
 
 def save_question(question_text, prediction):
+    """
+    This function saves a question to the database.
+    """
     # generate a UUID for the qid field
     qid = str(uuid.uuid4())
     # create a dictionary with the document data
@@ -29,11 +52,13 @@ def save_question(question_text, prediction):
     }
     # insert the document into the collection
     collection.insert_one(document)
-
     print('saved document {}'.format(document))
 
 
 def get_recent_questions():
+    """
+    Get the 10 most recent questions from the database.
+    """
     print('getting 10 most recent submissions')
     # Get the most recent 10 documents
     cursor = collection.find().sort('_id', DESCENDING).limit(10)
@@ -52,6 +77,14 @@ def get_recent_questions():
 
 
 def import_onetime_data():
+    """
+    This function imports the data from the CSV file into the database.
+    """
+    # check if the collection is empty, if so, import the data from the CSV file
+    # this is to avoid duplicate data in the database if the script is run multiple times
+    # in the same instance of the server
+
+    print('checking if data already exists')
     if collection.count_documents({}) > 0:
         print('data already exists, not importing again')
         return

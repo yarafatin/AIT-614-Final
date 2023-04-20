@@ -1,57 +1,66 @@
+"""
+AIT 614 - Big Data Essentials
+DL2 Team 3 Final Project
+Detecting Abrasive online user content
+
+Team 3
+Yasser Parambathkandy
+Indranil Pal
+Deepak Rajan
+
+University
+George Mason University
+"""
+
 from pyspark.ml.classification import LogisticRegressionModel
+from pyspark.sql.functions import col, explode
 from sparknlp.annotator import *
 from sparknlp.base import *
-from pyspark.sql.functions import col, udf
-from pyspark.ml.linalg import VectorUDT
-from pyspark.sql.types import ArrayType, DoubleType
-from pyspark.ml.linalg import Vectors
 
-from project_properties import WORD_EMBEDDING_MODEL_SAVE_PATH
+from project_properties import MODEL_PATH
+
+"""
+The prediction services takes a question and predicts whether it is abrasive or not.
+"""
 
 
 class Predictor:
 
     def __init__(self, spark_obj):
         self.spark = spark_obj
-        self.lmodel = LogisticRegressionModel.load(WORD_EMBEDDING_MODEL_SAVE_PATH)
-        document_assembler = DocumentAssembler().setInputCol("question_text").setOutputCol("document")
-        tokenizer = Tokenizer().setInputCols(["document"]).setOutputCol("token")
-        embeddings = WordEmbeddingsModel.pretrained("glove_840B_300", "xx") \
-            .setInputCols("document", "token") \
-            .setOutputCol("embeddings")
+        self.lmodel = LogisticRegressionModel.load(MODEL_PATH)
 
-        self.nlpPipeline = Pipeline(stages=[document_assembler,
-                                            tokenizer,
-                                            embeddings])
+        # Pipeline for NLP, same as the one used in the training
+        document_assembler = DocumentAssembler() \
+            .setInputCol("question_text") \
+            .setOutputCol("document")
+        embeddings_finisher = EmbeddingsFinisher() \
+            .setInputCols(["use_embeddings"]) \
+            .setOutputCols(["finished_use_embeddings"]) \
+            .setOutputAsVector(True).setCleanAnnotations(False)
+
+        useEmbeddings = UniversalSentenceEncoder.pretrained() \
+            .setInputCols("document").setOutputCol("use_embeddings")
+
+        self.nlpPipeline = Pipeline(stages=[
+            document_assembler,
+            useEmbeddings,
+            embeddings_finisher])
 
     def predict(self, input_data):
+        """
+        Predict whether the input question is abrasive or not.
+        :param input_data: The question to be predicted.
+        :return: The prediction.
+        """
+
         print('started')
 
         data = [(input_data,)]
         df = self.spark.createDataFrame(data, ["question_text"])
-        # df = spark.read.format('csv').option('header', True).load(TRAIN_FILE_PATH).limit(1)
 
         question_df = self.nlpPipeline.fit(df).transform(df)
+        question_df = question_df.withColumn("features", explode(question_df.finished_use_embeddings))
 
-        avg_vectors_udf = udf(avg_vectors, ArrayType(DoubleType()))
-        df_doc_vec = question_df.withColumn("doc_vector", avg_vectors_udf(col("embeddings")))
-
-        dense_vector_udf = udf(dense_vector, VectorUDT())
-        test_df = df_doc_vec.withColumn("features", dense_vector_udf(col("doc_vector")))
-
-        prediction = self.lmodel.transform(test_df)
+        prediction = self.lmodel.transform(question_df)
         return prediction.select(col("prediction").cast("int")).first()[0]
-
-
-def avg_vectors(word_vectors):
-    length = len(word_vectors[0]["embeddings"])
-    avg_vec = [0] * length
-    for vec in word_vectors:
-        for i, x in enumerate(vec["embeddings"]):
-            avg_vec[i] += x
-        avg_vec[i] = avg_vec[i] / length
-    return avg_vec
-
-
-def dense_vector(vec):
-    return Vectors.dense(vec)
