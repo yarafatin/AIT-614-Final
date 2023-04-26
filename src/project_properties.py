@@ -18,7 +18,7 @@ This file contains all the properties required for the project.
 
 import os
 
-MONGO_DB_USER = "yparamba"
+MONGO_DB_USER = "ait614user"
 MONGO_DB_NAME = "ait614"
 MONGO_DB_COLLECTION = "quoraQuestions"
 
