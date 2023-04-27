@@ -57,9 +57,9 @@ Close and open WSL2 window and run below
 Run below commands  
 `sudo mkdir /opt/ait614`  
 `sudo chmod -R 777 ait614`  
-Copy and extract the submitted project zip AIT614-DL2_Team3_system.zip to /opt/ait614    
-The project directory should be like - /opt/ait614/AIT614-DL2_Team3_system    
-`cd /opt/ait614/AIT614-DL2_Team3_system`  
+Copy and extract the submitted project zip AIT614-DL2_Team3_sys.zip to /opt/ait614    
+The project directory should be like - /opt/ait614/AIT614-DL2_Team3_sys    
+`cd /opt/ait614/AIT614-DL2_Team3_sys`  
 `jupyter lab`  
 This should open jupyter lab in browser, if not copy the url from the startup log and open in browser    
 Under src folder open - sentence_embedding_train.ipynb  
@@ -69,7 +69,7 @@ After sentence embedding based model training is complete, repeat the same for w
 
 #### Start Real-time prediction services
 - Upload all 1.3 million questions to mongodb by executing below line  
-- `cd /opt/ait614/AIT614-DL2_Team3_system/src`  
+- `cd /opt/ait614/AIT614-DL2_Team3_sys/src`  
 - `python3 db_client.py`  
 - The code does the one-time load only if the collection is empty
 - Start the flask app
@@ -102,7 +102,7 @@ Save trained models in S3 from databricks and use it from AWS EC2 instance for p
 - Login to AWS console, look for S3, click Create Bucket
 - Name the bucket ait614-models with default configuration
 - Unzip the project zip in local machine
-- In the S3 bucket, click add Folder and select the project folder "AIT614-DL2_Team3_system", and upload
+- In the S3 bucket, click add Folder and select the project folder "AIT614-DL2_Team3_sys", and upload
 
 #### Training in Databricks Community Cluster
 - After training in databricks, model can be saved to AWS S3. AWS access and secret keys are needed. If saving to AWS S3 is not needed, this can be skipped.       
@@ -111,7 +111,7 @@ Save trained models in S3 from databricks and use it from AWS EC2 instance for p
     - Download the csv file with credentials, rename the file as ait614_databricks_accessKeys.csv, and upload to databricks
     - It should get saved to dbfs:/FileStore/tables/ait614_databricks_accessKeys.csv
     - If access keys are not provided, the program still runs and save model to local file system instead
-- Upload train.csv from the AIT614-DL2_Team3_system/data directory to databricks    
+- Upload train.csv from the AIT614-DL2_Team3_sys/data directory to databricks    
     - This get uploaded to dbfs:/FileStore/tables/train.csv  
 - Ensure the file path of the above two files are as give above. If it different update the notebook with new path in code cell #2 
 - Upload sentence_embedding_train.ipynb and word_embedding_train.ipynb files to workspace
@@ -166,10 +166,10 @@ The generated model in S3 will be used to provide real-time prediction
     - Test the setup by executing this command aws s3 ls s3://ait614-models. This should show the project folder uploader earlier 
 - Setup Project and run
     - Download project from s3 -  aws s3 sync s3://ait614-models .
-    - `cd AIT614-DL2_Team3_system/src`
+    - `cd AIT614-DL2_Team3_sys/src`
     - edit the project.properties and update values for MONGO_DB_HOST and MONGO_DB_PASSWORD
     - By default, it uses existing models. To use newer models, update MODEL_PATH property and also get that model from S3. 
-        - To get new models from S3, create new folder in AIT614-DL2_Team3_system/src
+        - To get new models from S3, create new folder in AIT614-DL2_Team3_sys/src
         - cd to the new folder and to run sync command aws s3 sync s3://ait614-models/<new model folder name>
         - update project properties file with new model path
     - Run below  
