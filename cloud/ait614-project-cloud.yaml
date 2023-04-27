@@ -48,7 +48,7 @@ Resources:
     Type: "AWS::EC2::Instance"
     Properties:
       ImageId: "ami-0a695f0d95cefc163"
-      InstanceType: "t2.micro"
+      InstanceType: "t2.large"
       KeyName: !Ref KeyPair
       IamInstanceProfile: !Ref MyEC2InstanceProfile
       SecurityGroupIds:
@@ -59,6 +59,15 @@ Resources:
           Ebs:
             VolumeSize: 30
             VolumeType: gp2
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            sudo apt update
+            yum install -y httpd.x86_64
+            systemctl start httpd.service
+            systemctl enable httpd.service
+            echo ?Hello World from $(hostname -f)? > /var/www/html/index.html
   MyEC2InstanceSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
@@ -69,7 +78,7 @@ Resources:
           ToPort: 22
           CidrIp: "0.0.0.0/0"
         - IpProtocol: "tcp"
-          FromPort: 80
-          ToPort: 80
+          FromPort: 5000
+          ToPort: 5000
           CidrIp: "0.0.0.0/0"
       VpcId: !Ref VPCIdName
